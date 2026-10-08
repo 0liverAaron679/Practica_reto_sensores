@@ -4,29 +4,32 @@ import numpy as np
 import plotly.express as px
 import seaborn as sns
 import matplotlib.pyplot as plt
- 
+
 st.set_page_config(
     page_title="Reto Semanal - Monitoreo Industrial",
     layout="wide"
 )
- 
+
 @st.cache_data
 def cargar_datos():
     # Reemplazar por el nombre de su archivo descargado
     df = pd.read_csv("datos_sensores.csv")
     
-    # Asegurar que las columnas numéricas se conviertan correctamente
+    # Intentar convertir las columnas a numérico de forma segura
     for col in df.columns:
-        # Intenta convertir las columnas a numérico (si hay textos o datos inválidos pasan a NaN)
-        df[col] = pd.to_numeric(df[col], errors='ignore')
+        # Se intenta convertir; si no se puede, pd.to_numeric con coerce asigna NaN a textos inválidos
+        converted = pd.to_numeric(df[col], errors='coerce')
+        # Solo reemplazamos si la columna convertida tiene valores válidos
+        if not converted.isna().all():
+            df[col] = converted
         
     return df
- 
+
 df = cargar_datos()
- 
+
 st.title("📊 Panel de Depuración y Visualización de Sensores")
- 
-# Seleccionar columnas numéricas explícitamente para las métricas y gráficos
+
+# Seleccionar columnas numéricas explícitamente para las métricas
 num_cols = df.select_dtypes(include=[np.number]).columns
 
 # Panel de Métricas (KPIs)
@@ -49,7 +52,7 @@ else:
 
 # Pestañas con visualizaciones interactivas
 tab1, tab2 = st.tabs(["📈 Gráfico 2D/3D Plotly", "🔥 Matriz de Correlación"])
- 
+
 with tab1:
     st.subheader("Gráfico Interactivo de Dispersión")
     if len(df.columns) >= 2:
@@ -61,7 +64,7 @@ with tab1:
         st.plotly_chart(fig_scatter, use_container_width=True)
     else:
         st.warning("El dataset necesita al menos 2 columnas para el gráfico de dispersión.")
- 
+
 with tab2:
     st.subheader("Mapa de Calor Seaborn")
     df_corr = df.corr(numeric_only=True)
